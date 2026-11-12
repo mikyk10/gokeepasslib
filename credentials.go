@@ -62,7 +62,10 @@ func (c *DBCredentials) buildTransformedKey(db *Database) ([]byte, error) {
 			return nil, fmt.Errorf("%w: kdf parameters are missing", ErrCorruptedDatabase)
 		}
 
-		if reflect.DeepEqual(db.Header.FileHeaders.KdfParameters.UUID, KdfArgon2) {
+		kdfID := db.Header.FileHeaders.KdfParameters.UUID
+		isArgon2id := reflect.DeepEqual(kdfID, KdfArgon2id)
+
+		if isArgon2id || reflect.DeepEqual(kdfID, KdfArgon2) {
 			iterations := uint32(db.Header.FileHeaders.KdfParameters.Iterations)
 			parallelism := uint8(db.Header.FileHeaders.KdfParameters.Parallelism)
 
@@ -77,7 +80,12 @@ func (c *DBCredentials) buildTransformedKey(db *Database) ([]byte, error) {
 			}
 
 			// Argon 2
-			transformedKey = argon2.DKey(
+			deriveKey := argon2.DKey
+			if isArgon2id {
+				deriveKey = argon2.IDKey
+			}
+
+			transformedKey = deriveKey(
 				transformedKey, // Master key
 				db.Header.FileHeaders.KdfParameters.Salt[:], // Salt
 				iterations, // Time cost

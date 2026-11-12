@@ -122,6 +122,15 @@ func TestDecodeFile(t *testing.T) {
 			testContent: true,
 		},
 		{
+			title: "Database Format v4, chacha encryption, " +
+				"argon2id key transformation, password credentials",
+			dbFilePath: "tests/kdbx4/example-chacha-argon2id.kdbx",
+			newCredentials: func() (*DBCredentials, error) {
+				return NewPasswordCredentials("abcdefg12345678"), nil
+			},
+			testContent: true,
+		},
+		{
 			title:      "Database Format v4.1, password credentials",
 			dbFilePath: "tests/kdbx41/example.kdbx",
 			newCredentials: func() (*DBCredentials, error) {
