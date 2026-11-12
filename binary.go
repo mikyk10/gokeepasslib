@@ -105,14 +105,14 @@ func (bs *Binaries) Add(c []byte, options ...BinaryOption) *Binary {
 
 // GetContentBytes returns a bytes slice containing content of a binary
 func (b Binary) GetContentBytes() ([]byte, error) {
-	// Check for base64 content (KDBX 3.1), if it fail try with KDBX 4
-	decoded := make([]byte, base64.StdEncoding.DecodedLen(len(b.Content)))
-	n, err := base64.StdEncoding.Decode(decoded, b.Content)
-	if err != nil {
-		// KDBX 4 doesn't encode it
-		decoded = b.Content[:]
-	} else {
-		decoded = decoded[:n]
+	// KDBX 4 doesn't encode it
+	decoded := b.Content[:]
+	if !b.isKDBX4 {
+		// Check for base64 content (KDBX 3.1), use the content as is if it fails
+		buffer := make([]byte, base64.StdEncoding.DecodedLen(len(b.Content)))
+		if n, err := base64.StdEncoding.Decode(buffer, b.Content); err == nil {
+			decoded = buffer[:n]
+		}
 	}
 
 	// KeePass never compresses the content of a stream protected binary and
