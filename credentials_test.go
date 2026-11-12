@@ -226,6 +226,22 @@ func TestBuildTransformedKeyCorrupted(t *testing.T) {
 				Iterations: 2,
 			},
 		},
+		{
+			title: "argon2id without iterations",
+			kdfParameters: &KdfParameters{
+				UUID:        KdfArgon2id,
+				Memory:      1024 * 1024,
+				Parallelism: 2,
+			},
+		},
+		{
+			title: "argon2id without parallelism",
+			kdfParameters: &KdfParameters{
+				UUID:       KdfArgon2id,
+				Memory:     1024 * 1024,
+				Iterations: 2,
+			},
+		},
 	}
 
 	for _, c := range cases {
