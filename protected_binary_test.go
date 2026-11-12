@@ -227,6 +227,13 @@ func TestBinaryGetContentBytes(t *testing.T) {
 			},
 			expected: []byte("Hello"),
 		},
+		{
+			// KDBX 4 stores the content as is, even if it happens to be valid
+			// base64
+			title:    "KDBX 4 content which is valid base64",
+			binary:   Binary{Content: []byte("SGVsbG8="), isKDBX4: true},
+			expected: []byte("SGVsbG8="),
+		},
 	}
 
 	for _, c := range cases {
