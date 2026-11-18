@@ -178,6 +178,13 @@ func (e ErrKdbxVersionUpgradeRequired) Error() string {
 	)
 }
 
+// TransformedKey derives the transformed key from the Credentials and the
+// key derivation parameters in the Header. Passed as the TransformedKey of
+// the credentials, it opens the database again without the key derivation
+func (db *Database) TransformedKey() ([]byte, error) {
+	return db.getTransformedKey()
+}
+
 // getTransformedKey returns the transformed key Credentials
 func (db *Database) getTransformedKey() ([]byte, error) {
 	if db.Credentials == nil {

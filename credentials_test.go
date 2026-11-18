@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -253,6 +254,65 @@ func TestBuildTransformedKeyCorrupted(t *testing.T) {
 			_, err := db.getTransformedKey()
 			if !errors.Is(err, ErrCorruptedDatabase) {
 				t.Fatalf("Received error '%v', expected '%v'", err, ErrCorruptedDatabase)
+			}
+		})
+	}
+}
+
+func TestTransformedKeyCredentials(t *testing.T) {
+	cases := []struct {
+		title      string
+		dbFilePath string
+	}{
+		{
+			title:      "Database Format v3.1",
+			dbFilePath: "tests/kdbx3/example.kdbx",
+		},
+		{
+			title:      "Database Format v4, AES-KDF",
+			dbFilePath: "tests/kdbx4/example.kdbx",
+		},
+		{
+			title:      "Database Format v4, Argon2",
+			dbFilePath: "tests/kdbx4/example-chacha-argon2.kdbx",
+		},
+	}
+
+	decode := func(path string, credentials *DBCredentials) (*Database, error) {
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		db := NewDatabase()
+		db.Credentials = credentials
+		return db, NewDecoder(file).Decode(db)
+	}
+
+	for _, c := range cases {
+		t.Run(c.title, func(t *testing.T) {
+			db, err := decode(c.dbFilePath, NewPasswordCredentials(examplePassword))
+			if err != nil {
+				t.Fatalf("Failed to decode file: %s", err)
+			}
+			transformedKey, err := db.TransformedKey()
+			if err != nil {
+				t.Fatalf("Failed to derive the transformed key: %s", err)
+			}
+
+			reopened, err := decode(c.dbFilePath, &DBCredentials{TransformedKey: transformedKey})
+			if err != nil {
+				t.Fatalf("Failed to decode file with the transformed key: %s", err)
+			}
+			if !reflect.DeepEqual(reopened.Content.Root, db.Content.Root) {
+				t.Error("Content decoded with the transformed key differs")
+			}
+
+			wrongKey := bytes.Clone(transformedKey)
+			wrongKey[0] ^= 0xFF
+			if _, err := decode(c.dbFilePath, &DBCredentials{TransformedKey: wrongKey}); err == nil {
+				t.Error("Decoded file with a wrong transformed key")
 			}
 		})
 	}
