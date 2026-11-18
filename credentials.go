@@ -1,6 +1,7 @@
 package gokeepasslib
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -26,6 +27,12 @@ type DBCredentials struct {
 	Passphrase []byte // Passphrase if using one, stored in sha256 hash
 	Key        []byte // Contents of the keyfile if using one, stored in sha256 hash
 	Windows    []byte // Whatever is returned from windows user account auth, stored in sha256 hash
+
+	// TransformedKey, if set, is used as the transformed key instead of
+	// deriving it from the fields above, which skips the key derivation.
+	// It is only valid for the key derivation parameters of the database
+	// it was obtained from, see Database.TransformedKey
+	TransformedKey []byte
 }
 
 func (c *DBCredentials) buildCompositeKey() ([]byte, error) {
@@ -52,6 +59,10 @@ func (c *DBCredentials) buildCompositeKey() ([]byte, error) {
 }
 
 func (c *DBCredentials) buildTransformedKey(db *Database) ([]byte, error) {
+	if c.TransformedKey != nil {
+		return bytes.Clone(c.TransformedKey), nil
+	}
+
 	transformedKey, err := c.buildCompositeKey()
 	if err != nil {
 		return nil, err
